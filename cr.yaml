@@ -1,8 +1,0 @@
-owner: lnsantana
-git-repo: helm-charts-fmp
-release-name-template: "{{ .Name }}-{{ .Version }}"
-package-path: .cr-release-packages
-token: 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
-git-base-url: https://api.github.com/
-git-upload-url: https://uploads.github.com/
-skip-existing: "true"
