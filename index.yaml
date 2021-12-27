@@ -5,13 +5,13 @@ entries:
       category: Infrastructure
     apiVersion: v2
     appVersion: latest
-    created: "2021-12-27T12:49:21.200529815Z"
+    created: "2021-12-27T12:50:25.343867848Z"
     dependencies:
     - name: common
       repository: https://charts.bitnami.com/bitnami
       version: 1.x.x
     description: LocalStack - a fully functional local AWS cloud stack
-    digest: 35979ea5626f6b05c029cda013b8f17e450a09c3849d1d829c5fff75352d6ef2
+    digest: 8cc55d3de040a4a016982d670cb9f261df6b2a9c078cfb31b82dd6a0f4133cbb
     icon: https://localstack.cloud/images/localstack.png
     keywords:
     - aws
@@ -27,19 +27,4 @@ entries:
     urls:
     - https://github.com/PicPay/helm-test-fmp/releases/download/localstack-0.3.7/localstack-0.3.7.tgz
     version: 0.3.7
-  ms-card-pre-consumer:
-  - apiVersion: v2
-    appVersion: 1.16.0
-    created: "2021-12-27T12:49:21.366970901Z"
-    dependencies:
-    - name: picpay-ms
-      repository: file://../../charts/picpay-ms
-      version: 0.1.0
-    description: A Helm chart for Kubernetes
-    digest: ead8a7b67b27202588cac780c4f77627eea0923aef973dc315fe9c4ba1a821ad
-    name: ms-card-pre-consumer
-    type: application
-    urls:
-    - https://github.com/PicPay/helm-test-fmp/releases/download/ms-card-pre-consumer-0.2.0/ms-card-pre-consumer-0.2.0.tgz
-    version: 0.2.0
-generated: "2021-12-27T12:49:21.366983Z"
+generated: "2021-12-27T12:50:25.343873848Z"
