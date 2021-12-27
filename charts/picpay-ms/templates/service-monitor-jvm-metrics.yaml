@@ -1,0 +1,19 @@
+{{- if $.Values.global.jvm_metrics.enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    app: {{ .Values.global.app_name }}-jvm-metrics
+    monitor: prometheus
+    managed-by: "kubeapps"
+  name: {{ .Values.global.app_name }}-jvm-metrics-service-monitor
+spec:
+  endpoints:
+  - path: /metrics
+    port: exporter
+  selector:
+    matchLabels:
+      jvm-metrics: enabled
+      app: {{ .Values.global.app_name }}-jvm-metrics
+{{- end }}

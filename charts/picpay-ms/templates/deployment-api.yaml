@@ -1,0 +1,224 @@
+{{- range .Values.apis }}
+{{- $api := . }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $.Values.global.app_name }}-{{ $api.name }}
+  namespace: ms-{{ $.Values.global.app_name }}
+  labels:
+    namespace: ms-{{ $.Values.global.app_name }}
+    app: {{ $.Values.global.app_name }}-{{ $api.name }}
+    managed-by: "kubeapps"
+    backstage.io/kubernetes-id: ms-{{ $.Values.global.app_name }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ $.Values.global.app_name }}-{{ $api.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ $.Values.global.app_name }}-{{ $api.name }}
+        managed-by: "kubeapps"
+        version: {{ $.Values.global.image.tag }}
+        timestamp: {{ date "20060102150405" $.now | quote }}
+        namespace: ms-{{ $.Values.global.app_name }}
+        {{- if $.Values.global.jvm_metrics.enabled}}
+        jvm-metrics: enabled
+        {{- end}}
+        {{- if $.Values.global.metrics.enabled}}
+        metrics: enabled
+        {{- end}}
+        backstage.io/kubernetes-id: ms-{{ $.Values.global.app_name }}
+    spec:
+      priorityClassName: {{ $api.priority | default "avg-api" }}
+      {{- if $api.volumes}}
+      volumes:
+        {{- with $api.volumes -}}
+            {{ toYaml . | nindent 8 }}
+        {{- end }}
+      {{- end}}
+      {{- if $api.initContainers }}
+      initContainers:
+      {{- with $api.initContainers -}}
+        {{ toYaml . | nindent 8 }}
+      {{- end }}  
+      {{- end }}
+      containers:
+      {{- if $api.sidecar }}
+      {{- range $api.sidecar }}
+      - name: {{ $.Values.global.app_name }}-{{ .name }}
+        imagePullPolicy: IfNotPresent
+        image: {{ .image }}
+        {{- if .containerPort }}
+        ports:
+        - name: container-port
+          containerPort: {{ .containerPort }}
+          protocol: TCP
+        {{- end }}
+        {{- if .volumeMounts }}
+        volumeMounts:
+          {{- range .volumeMounts }}
+          - name: {{ .name }}
+            mountPath: {{ .mountPath }}
+          {{- end }}
+        {{- end }}
+        resources:
+          limits:
+            {{- if .limits_cpu }}
+            cpu: {{ .limits_cpu }}
+            {{- end }}
+            memory: {{ .limits_memory | default "256Mi" }}
+          requests:
+            cpu: {{ .requests_cpu | default "100m" }}
+            memory: {{ .requests_memory | default "128Mi" }}
+        {{- if not (empty .liveness) }}
+        livenessProbe:
+          {{- if ne (get .health "tcp") "" }}
+          tcpSocket:
+            port: container-port
+          {{- else if ne (get .health "path") "" }}
+          httpGet:
+            path: {{ .health.path }}
+            port: container-port
+          {{- else if .health.command }}
+          exec:
+            command:
+            {{- range .health.command}}
+              - {{ . | quote}}
+            {{- end}}
+          {{- end}}
+          initialDelaySeconds: {{ default 30 .liveness.initialDelaySeconds }}
+          periodSeconds: {{ default 10 .liveness.periodSeconds }}
+          successThreshold: 1
+          failureThreshold: {{ default 3 .liveness.failureThreshold }}
+          timeoutSeconds: {{ default 3 .liveness.timeoutSeconds }}
+        {{- end}}
+        {{- if not (empty .readiness) }}
+        readinessProbe:
+          {{- if ne (get .health "path") "" }}
+          httpGet:
+            path: {{ .health.path }}
+            port: container-port
+          {{- else if .health.command }}
+          exec:
+            command:
+            {{- range .health.command}}
+              - {{ . | quote}}
+            {{- end}}
+          {{- end }}
+          initialDelaySeconds: {{ default 30 .readiness.initialDelaySeconds }}
+          periodSeconds: {{ default 5 .readiness.periodSeconds }}
+          successThreshold: {{ default 1 .readiness.successThreshold }}
+          failureThreshold: {{ default 3 .readiness.failureThreshold }}
+          timeoutSeconds: {{ default 3 .readiness.timeoutSeconds }}
+        {{- end}}
+        {{- if .command }}
+        command: {{ .command }}
+        {{- end }}
+        {{- if .args }}
+        args: {{ toJson .args }}
+        {{- end }}
+        env:
+        - name: APP_NAME
+          value: {{ $.Values.global.app_name }}
+        - name: APP_STAGE
+          value: {{ $.Values.global.app_stage }}
+        {{- if .env }}{{ toYaml .env | nindent 8}}{{- end }}
+        {{- if .envFrom }}
+        envFrom: {{ toYaml .envFrom | nindent 8 }}
+        {{- end}}
+      {{- end }}
+      {{- end }}
+      - name: {{ $.Values.global.app_name }}-{{ $api.name }}
+        image: {{ $api.image.repositoryURI }}:{{ $api.image.tag | default $.Values.global.image.tag }}
+        imagePullPolicy: IfNotPresent
+        {{- if $api.containerPort }}
+        ports:
+        - name: container-port
+          containerPort: {{ $api.containerPort }}
+          protocol: TCP
+        {{- end }}
+        {{- if $api.volumeMounts }}
+        volumeMounts:
+          {{- range $api.volumeMounts }}
+          - name: {{ .name }}
+            mountPath: {{ .mountPath }}
+          {{- end }}
+        {{- end }}
+        {{- if eq (kindOf $api.command) "slice" }}
+        command: {{ toJson $api.command }}
+        {{- else if eq (kindOf $api.command) "string" }}
+        command: [ {{ $api.command | quote }} ]
+        {{- end }}
+        {{- if eq (kindOf $api.args) "slice" }}
+        args: {{ toJson $api.args }}
+        {{- else }}
+        args: [ {{ $api.args | quote }} ]
+        {{- end }}
+        env:
+        - name: APP_NAME
+          value: {{ $.Values.global.app_name }}
+        - name: APP_STAGE
+          value: {{ $.Values.global.app_stage }}
+        {{- if $api.env }}{{ toYaml $api.env | nindent 8}}{{- end }}
+        {{- if $api.envFrom }}
+        envFrom: {{ toYaml $api.envFrom | nindent 8}}
+        {{- end }}
+        {{- if or ($api.readiness.enabled) (not (hasKey $api.readiness "enabled")) }}
+        readinessProbe:
+          {{- if ne (get $api.health "path") "" }}
+          httpGet:
+            path: {{ $api.health.path }}
+            port: container-port
+          {{- else if $api.health.command }}
+          exec:
+            command:
+            {{- range .health.command}}
+              - {{ . | quote}}
+            {{- end}}
+          {{- end}}
+          initialDelaySeconds: {{ default 30 $api.readiness.initialDelaySeconds }}
+          periodSeconds: {{ default 5 $api.readiness.periodSeconds }}
+          successThreshold: {{ default 1 $api.readiness.successThreshold }}
+          failureThreshold: {{ default 3 $api.readiness.failureThreshold }}
+          timeoutSeconds: {{ default 3 $api.readiness.timeoutSeconds }}
+        {{- end}}
+        {{- if or ($api.liveness.enabled) (not (hasKey $api.liveness "enabled")) }}
+        livenessProbe:
+          {{- if ne (get $api.health "tcp") "" }}
+          tcpSocket:
+            port: container-port
+          {{- else if ne (get $api.health "path") "" }}
+          httpGet:
+            path: {{ $api.health.path }}
+            port: container-port
+          {{- else if $api.health.command }}
+          exec:
+            command:
+            {{- range .health.command}}
+              - {{ . | quote}}
+            {{- end}}
+          {{- end}}
+          initialDelaySeconds: {{ default 30 $api.liveness.initialDelaySeconds }}
+          periodSeconds: {{ default 10 $api.liveness.periodSeconds }}
+          successThreshold: 1
+          failureThreshold: {{ default 3 $api.liveness.failureThreshold }}
+          timeoutSeconds: {{ default 3 $api.liveness.timeoutSeconds }}
+        {{- end}}
+        resources:
+          limits:
+            {{- if $api.limits_cpu }}
+            cpu: {{ $api.limits_cpu }}
+            {{- end }}
+            memory: {{ $api.limits_memory | default "256Mi" }}
+          requests:
+            cpu: {{ $api.requests_cpu | default "100m" }}
+            memory: {{ $api.requests_memory | default "128Mi" }}
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+{{- if $api.hostAliases}}
+      hostAliases:
+{{ toYaml $api.hostAliases | indent 6 }}
+{{- end}}
+{{- end }}

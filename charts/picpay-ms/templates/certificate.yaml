@@ -1,0 +1,59 @@
+{{- range .Values.apis }}
+{{- $api := . }}
+{{- with $api.ingress }}
+{{- range $i, $ingress := . }}
+{{- if $ingress.tls }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ $.Values.global.app_name }}-{{ $api.name }}-ingress-tls
+  namespace: ms-{{ $.Values.global.app_name }}
+  labels:
+    managed-by: "kubeapps"
+spec:
+  secretName: {{ $.Values.global.app_name }}-{{ $api.name }}-ingress-tls
+  {{- with first $ingress.hosts }}
+  {{- if contains "picpay.internal" .hostname }}
+  duration: 2160h
+  renewBefore: 360h
+  subject:
+    organizations:
+    - PicPay
+  {{- end }}
+  {{- end }}
+  {{- with first $ingress.hosts }}
+  {{- if contains "prd-hub-virginia.k8s.hub.picpay.internal" .hostname }}
+  commonName: prd-hub-virginia.k8s.hub.picpay.internal
+  {{- else if contains "pic-lab-virginia.k8s.lab.picpay.internal" .hostname }}
+  commonName: pic-lab-virginia.k8s.lab.picpay.internal
+  {{- end }}
+  {{- end }}
+  {{- with first $ingress.hosts }}
+  {{- if contains "picpay.internal" .hostname }}
+  isCA: false
+  privateKey:
+    algorithm: RSA
+    encoding: PKCS1
+    size: 2048
+  usages:
+    - server auth
+    - client auth
+  {{- end }}
+  {{- end }}
+  dnsNames:
+    {{- range $ingress.hosts }}
+    - {{ .hostname }}
+    {{- end}}
+  issuerRef:
+    {{- with first $ingress.hosts }}
+    {{- if contains "picpay.internal" .hostname }}
+    name: vault-issuer
+    {{- else if contains "picpay.cloud" .hostname }}
+    name: letsencrypt-issuer
+    {{- end }}
+    {{- end }}
+    kind: ClusterIssuer
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

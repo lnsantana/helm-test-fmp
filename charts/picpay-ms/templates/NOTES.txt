@@ -1,0 +1,9 @@
+The ascii turtle brings you good news!
+
+.  _____    ____
+ /      \  |  o |
+|        |/ ___\|
+|_________/
+|_|_| |_|_|
+
+Deployed new revision of chart {{ .Chart.Name }} to {{ .Values.global.stage }}.

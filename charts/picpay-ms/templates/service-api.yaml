@@ -1,0 +1,22 @@
+{{- range .Values.apis }}
+{{ $api := . }}
+{{- if $api.service.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $.Values.global.app_name }}-{{ $api.name }}
+  namespace: ms-{{ $.Values.global.app_name }}
+  labels:
+    managed-by: "kubeapps"
+    backstage.io/kubernetes-id: ms-{{ $.Values.global.app_name }}
+spec:
+  ports:
+  - port: {{ $api.service.port }}
+    protocol: TCP
+    targetPort: {{ $api.service.targetPort }}
+  selector:
+    app: {{ $.Values.global.app_name }}-{{ $api.name }}
+  type: {{ default "ClusterIP" $api.service.type }}
+{{- end }}
+{{- end }}

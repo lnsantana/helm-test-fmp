@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "description": "Schema validator para arquivos de values do helm.",
+  "properties": {
+    "apis": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "object",
+        "required": [
+          "requests_cpu",
+          "limits_cpu",
+          "requests_memory",
+          "limits_memory"
+        ]
+      }
+    },
+    "workers": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "object",
+        "required": [
+          "requests_cpu",
+          "limits_cpu",
+          "requests_memory",
+          "limits_memory"        
+       ]
+      }
+    },
+    "cronjobs": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "object",
+        "required": [
+          "cpu",
+          "memory",
+          "enabled",
+          "schedule",
+          "ttl" 
+        ]
+      }
+    },
+    "configmaps": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "object",
+        "required": []
+      }
+    }
+  },
+  "required": ["apis", "workers", "cronjobs", "configmaps"],
+  "title": "Values",
+  "type": "object"
+}

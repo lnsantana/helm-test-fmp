@@ -1,0 +1,63 @@
+{{- range .Values.apis }}
+{{ $api := . }}
+{{- with $api.ingress }}
+{{- range $i, $ingress := . }}
+---
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  {{- if $ingress.name }}
+  name: {{ $ingress.name }}
+  {{- else }}
+  name: {{ $api.name }}-{{ $ingress.type }}
+  {{- end }}
+  namespace: ms-{{ $.Values.global.app_name }}
+  labels:
+    managed-by: "kubeapps"
+    backstage.io/kubernetes-id: ms-{{ $.Values.global.app_name }}
+  annotations:
+    kubernetes.io/ingress.class: {{ $ingress.type }}
+    {{- range $key, $value := $ingress.annotations }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+spec:
+  rules:
+    {{- range $ingress.http }}
+    - http:
+        paths:
+          - path: {{ .path }}
+            backend:
+              serviceName: {{ hasKey . "serviceName" | ternary .serviceName (printf "%s-%s" $.Values.global.app_name $api.name) }}
+              servicePort: {{ hasKey . "servicePort" | ternary .servicePort $api.service.port }}
+    {{- end  }}
+    {{- range $ingress.hosts }}
+    - host: {{ .hostname }}
+      http:
+        paths:
+          {{- if $ingress.path }}
+          - path: {{ $ingress.path }}
+            backend:
+              serviceName: {{ hasKey . "serviceName" | ternary .serviceName (printf "%s-%s" $.Values.global.app_name $api.name) }}
+              servicePort: {{ hasKey . "servicePort" | ternary .servicePort $api.service.port }}
+          {{- else if .path }}
+          - path: {{ .path }}
+            backend:
+              serviceName: {{ hasKey . "serviceName" | ternary .serviceName (printf "%s-%s" $.Values.global.app_name $api.name) }}
+              servicePort: {{ hasKey . "servicePort" | ternary .servicePort $api.service.port }}
+          {{- else }}
+          - backend:
+              serviceName: {{ hasKey . "serviceName" | ternary .serviceName (printf "%s-%s" $.Values.global.app_name $api.name) }}
+              servicePort: {{ hasKey . "servicePort" | ternary .servicePort $api.service.port }}
+          {{- end  }}
+    {{- end  }}
+  {{- if $ingress.tls }}
+  tls:
+    - hosts:
+        {{- range $ingress.hosts }}
+        - {{ .hostname }}
+        {{- end}}
+      secretName: {{ $.Values.global.app_name }}-{{ $api.name }}-ingress-tls
+  {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
