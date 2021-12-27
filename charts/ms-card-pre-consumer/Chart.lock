@@ -1,6 +1,0 @@
-dependencies:
-- name: picpay-ms
-  repository: file://../../charts/picpay-ms
-  version: 0.1.0
-digest: sha256:367adea7cbb907b0d3351ce88264e8587c5770e2eeb8e82584ad4c2c356aa8cc
-generated: "2021-11-26T12:16:54.019401-03:00"
